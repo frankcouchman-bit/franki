@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Check, Zap, Crown, Sparkles } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-import { toast } from 'react-hot-toast'
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Check, Zap, Crown, Sparkles } from "lucide-react"
+import { useAuth } from "../hooks/useAuth"
+import { useNavigate } from "react-router-dom"
+import Navbar from "../components/Navbar"
+import { toast } from "react-hot-toast"
 
 export default function Pricing() {
   const { user, plan } = useAuth()
@@ -13,117 +13,118 @@ export default function Pricing() {
 
   const handleUpgrade = async () => {
     if (!user) {
-      navigate('/')
+      navigate("/")
       return
     }
-
-    if (plan === 'pro') {
+    if (plan === "pro") {
       handleManageBilling()
       return
     }
-
     setLoading(true)
     try {
-      const response = await fetch('https://seoscribe.frank-couchman.workers.dev/api/stripe/create-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`
-        },
-        body: JSON.stringify({
-          successUrl: `${window.location.origin}/dashboard?upgrade=success`,
-          cancelUrl: `${window.location.origin}/pricing`
-        })
-      })
-
+      const response = await fetch(
+        "https://seoscribe.frank-couchman.workers.dev/api/stripe/create-checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("supabase_token")}`,
+          },
+          body: JSON.stringify({
+            successUrl: `${window.location.origin}/dashboard?upgrade=success`,
+            cancelUrl: `${window.location.origin}/pricing`,
+          }),
+        }
+      )
       if (response.ok) {
         const { url } = await response.json()
         window.location.href = url
       } else {
-        throw new Error('Failed to create checkout session')
+        throw new Error("Failed to create checkout session")
       }
     } catch (error) {
-      console.error('Upgrade error:', error)
-      toast.error('Failed to start upgrade process')
+      console.error("Upgrade error:", error)
+      toast.error("Failed to start upgrade process")
       setLoading(false)
     }
   }
 
   const handleManageBilling = async () => {
     if (!user) return
-
     setLoading(true)
     try {
-      const response = await fetch('https://seoscribe.frank-couchman.workers.dev/api/stripe/portal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`
-        },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/pricing`
-        })
-      })
-
+      const response = await fetch(
+        "https://seoscribe.frank-couchman.workers.dev/api/stripe/portal",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("supabase_token")}`,
+          },
+          body: JSON.stringify({
+            returnUrl: `${window.location.origin}/pricing`,
+          }),
+        }
+      )
       if (response.ok) {
         const { url } = await response.json()
         window.location.href = url
       } else {
-        throw new Error('Failed to access billing portal')
+        throw new Error("Failed to access billing portal")
       }
     } catch (error) {
-      console.error('Portal error:', error)
-      toast.error('Failed to open billing portal')
+      console.error("Portal error:", error)
+      toast.error("Failed to open billing portal")
       setLoading(false)
     }
   }
 
   const plans = [
     {
-      name: 'Free',
-      price: '$0',
-      period: 'forever',
-      description: 'Perfect for trying out SEOScribe',
+      name: "Free",
+      price: "$0",
+      period: "forever",
+      description: "Perfect for trying out SEOScribe",
       features: [
-        '1 article per day',
-        '1 SEO tool use per day',
-        '2 article expansions',
-        'All content templates',
-        'Basic analytics',
-        'Community support'
+        "1 article per day",
+        "1 SEO tool use per day",
+        "2 article expansions",
+        "All content templates",
+        "Basic analytics",
+        "Community support",
       ],
-      cta: 'Current Plan',
-      current: plan === 'free',
+      cta: "Current Plan",
+      current: plan === "free",
       icon: Zap,
-      color: 'from-blue-500 to-cyan-500'
+      color: "from-blue-500 to-cyan-500",
     },
     {
-      name: 'Pro',
-      price: '$29',
-      period: '/month',
-      description: 'For serious content creators and agencies',
+      name: "Pro",
+      price: "$29",
+      period: "/month",
+      description: "For serious content creators and agencies",
       features: [
-        '15 articles per day',
-        '10 SEO tool uses per day',
-        '6 article expansions',
-        'All premium templates',
-        'Advanced analytics',
-        'Priority support',
-        'API access',
-        'White-label options'
+        "15 articles per day",
+        "10 SEO tool uses per day",
+        "6 article expansions",
+        "All premium templates",
+        "Advanced analytics",
+        "Priority support",
+        "API access",
+        "White-label options",
       ],
-      cta: plan === 'pro' ? 'Manage Billing' : 'Upgrade to Pro',
+      cta: plan === "pro" ? "Manage Billing" : "Upgrade to Pro",
       popular: true,
-      current: plan === 'pro',
+      current: plan === "pro",
       icon: Crown,
-      color: 'from-purple-500 to-pink-500'
-    }
+      color: "from-purple-500 to-pink-500",
+    },
   ]
 
   return (
     <div className="min-h-screen pt-16">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -146,7 +147,9 @@ export default function Pricing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`glass-strong rounded-2xl p-8 border ${
-                planItem.popular ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : 'border-white/10'
+                planItem.popular
+                  ? "border-purple-500/50 shadow-2xl shadow-purple-500/20"
+                  : "border-white/10"
               } relative`}
             >
               {planItem.popular && (
@@ -159,7 +162,9 @@ export default function Pricing() {
               )}
 
               <div className="text-center mb-8">
-                <div className={`w-16 h-16 bg-gradient-to-br ${planItem.color} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                <div
+                  className={`w-16 h-16 bg-gradient-to-br ${planItem.color} rounded-2xl flex items-center justify-center mx-auto mb-4`}
+                >
                   <planItem.icon className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">{planItem.name}</h3>
@@ -180,19 +185,24 @@ export default function Pricing() {
               </ul>
 
               <motion.button
-                onClick={planItem.name === 'Pro' ? handleUpgrade : null}
-                disabled={loading || (planItem.current && planItem.name === 'Free')}
+                type="button"
+                onClick={planItem.name === "Pro" ? handleUpgrade : undefined}
+                disabled={loading || (planItem.current && planItem.name === "Free")}
                 className={`w-full py-3 rounded-xl font-bold transition-all ${
                   planItem.popular
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg hover:shadow-purple-500/50'
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg hover:shadow-purple-500/50"
                     : planItem.current
-                    ? 'bg-white/10 cursor-not-allowed'
-                    : 'bg-white/10 hover:bg-white/20'
+                    ? "bg-white/10 cursor-not-allowed"
+                    : "bg-white/10 hover:bg-white/20"
                 } disabled:opacity-50`}
-                whileHover={planItem.current && planItem.name === 'Free' ? {} : { scale: 1.02 }}
-                whileTap={planItem.current && planItem.name === 'Free' ? {} : { scale: 0.98 }}
+                whileHover={
+                  planItem.current && planItem.name === "Free" ? {} : { scale: 1.02 }
+                }
+                whileTap={
+                  planItem.current && planItem.name === "Free" ? {} : { scale: 0.98 }
+                }
               >
-                {loading ? 'Loading...' : planItem.cta}
+                {loading ? "Loading..." : planItem.cta}
               </motion.button>
             </motion.div>
           ))}
@@ -207,10 +217,12 @@ export default function Pricing() {
           <div className="glass-strong rounded-2xl p-8 border border-white/10 max-w-3xl mx-auto">
             <h3 className="text-2xl font-bold mb-4">Need a custom plan?</h3>
             <p className="text-white/70 mb-6">
-              For enterprises and agencies requiring custom limits, white-label solutions, or dedicated support,
-              contact us for a tailored plan.
+              For enterprises and agencies requiring custom limits, white-label solutions, or
+              dedicated support, contact us for a tailored plan.
             </p>
-            
+
+            {/* FIXED: proper anchor tag */}
+            <a
               href="mailto:support@seoscribe.pro"
               className="inline-block px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-colors"
             >
