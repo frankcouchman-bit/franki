@@ -222,26 +222,3 @@ export default function Pricing() {
     </div>
   )
 }
-```
-
----
-
-## **✅ DEPLOYMENT STEPS FOR YOU:**
-
-### **1. Worker is Already Deployed ✅**
-Your worker at `https://seoscribe.frank-couchman.workers.dev` is live with all secrets configured!
-
-### **2. Update Supabase Redirect URLs**
-
-Go to Supabase Dashboard → Authentication → URL Configuration and add:
-```
-https://seoscribe.pro/auth/callback
-https://glistening-stroopwafel-16e9e6.netlify.app/auth/callback
-https://seoscribe.frank-couchman.workers.dev/auth/callback
-```
-
-### **3. Update Stripe Webhook**
-
-Go to Stripe Dashboard → Webhooks and update the endpoint to:
-```
-https://seoscribe.frank-couchman.workers.dev/api/stripe/webhook
