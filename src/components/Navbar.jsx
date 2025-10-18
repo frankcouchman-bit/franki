@@ -1,83 +1,125 @@
-import { motion } from 'framer-motion'
-import { Menu, X, LogOut, User, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Menu, X, Sparkles, FileText, Library, Wrench, CreditCard, LogOut, User } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import AuthModal from './auth/AuthModal'
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const location = useLocation()
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user, plan, signOut } = useAuth()
 
-  const navLinks = [
-    { name: 'Dashboard', path: '/dashboard', requiresAuth: true },
-    { name: 'SEO Tools', path: '/seo-tools' },
-    { name: 'Pricing', path: '/pricing' }
+  const navLinks = user ? [
+    { path: '/dashboard', label: 'Dashboard', icon: Sparkles },
+    { path: '/library', label: 'Library', icon: Library },
+    { path: '/seo-tools', label: 'SEO Tools', icon: Wrench },
+  ] : [
+    { path: '/seo-tools', label: 'SEO Tools', icon: Wrench },
   ]
+
+  const handleUpgrade = async () => {
+    if (!user) {
+      setShowAuth(true)
+      return
+    }
+
+    try {
+      const response = await fetch('https://seoscribe.frank-couchman.workers.dev/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`
+        },
+        body: JSON.stringify({
+          successUrl: `${window.location.origin}/dashboard?upgrade=success`,
+          cancelUrl: `${window.location.origin}/pricing`
+        })
+      })
+
+      if (response.ok) {
+        const { url } = await response.json()
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error('Upgrade error:', error)
+    }
+  }
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-strong border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center cursor-pointer"
-              onClick={() => navigate('/')}
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mr-3">
-                <span className="text-2xl font-black">S</span>
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FileText className="w-6 h-6" />
               </div>
-              <span className="text-2xl font-black">
-                <span className="gradient-text">SEO</span>Scribe
-              </span>
-            </motion.div>
+              <span className="text-xl font-black gradient-text">SEOScribe</span>
+            </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
-                (!link.requiresAuth || user) && (
-                  <motion.button
-                    key={link.path}
-                    onClick={() => navigate(link.path)}
-                    className="text-white/80 hover:text-white font-semibold transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {link.name}
-                  </motion.button>
-                )
+            <div className="hidden md:flex items-center gap-6">
+              {navLinks.map(link => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    location.pathname === link.path
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : 'hover:bg-white/10'
+                  }`}
+                >
+                  <link.icon className="w-4 h-4" />
+                  {link.label}
+                </Link>
               ))}
 
               {user ? (
-                <div className="flex items-center gap-4">
-                  <motion.button
-                    onClick={() => navigate('/library')}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    Library
-                  </motion.button>
-                  <motion.button
-                    onClick={signOut}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg font-semibold transition-colors text-red-400"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </motion.button>
-                </div>
+                <>
+                  {plan === 'free' && (
+                    <motion.button
+                      onClick={handleUpgrade}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Sparkles className="w-4 h-4 inline mr-2" />
+                      Upgrade to Pro
+                    </motion.button>
+                  )}
+
+                  <div className="relative group">
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">
+                      <User className="w-4 h-4" />
+                      <span className="font-semibold">{plan === 'pro' ? 'Pro' : 'Free'}</span>
+                    </button>
+
+                    <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-lg shadow-xl border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                      <button
+                        onClick={() => navigate('/pricing')}
+                        className="w-full px-4 py-3 text-left hover:bg-white/10 rounded-t-lg transition-colors flex items-center gap-2"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Manage Plan
+                      </button>
+                      <button
+                        onClick={signOut}
+                        className="w-full px-4 py-3 text-left hover:bg-white/10 rounded-b-lg transition-colors flex items-center gap-2 text-red-400"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <motion.button
-                  onClick={() => setShowAuthModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold shadow-lg"
+                  onClick={() => setShowAuth(true)}
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -88,73 +130,96 @@ export default function Navbar() {
 
             {/* Mobile Menu Button */}
             <button
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={() => setMobileOpen(!mobileOpen)}
               className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
             >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-white/10 bg-slate-900"
-          >
-            <div className="px-4 py-4 space-y-3">
-              {navLinks.map((link) => (
-                (!link.requiresAuth || user) && (
-                  <button
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="md:hidden border-t border-white/10 overflow-hidden"
+            >
+              <div className="px-4 py-4 space-y-2">
+                {navLinks.map(link => (
+                  <Link
                     key={link.path}
-                    onClick={() => {
-                      navigate(link.path)
-                      setIsOpen(false)
-                    }}
-                    className="block w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 font-semibold transition-colors"
+                    to={link.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-colors ${
+                      location.pathname === link.path
+                        ? 'bg-purple-500/20 text-purple-400'
+                        : 'hover:bg-white/10'
+                    }`}
                   >
-                    {link.name}
-                  </button>
-                )
-              ))}
+                    <link.icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                ))}
 
-              {user ? (
-                <>
+                {user ? (
+                  <>
+                    {plan === 'free' && (
+                      <button
+                        onClick={() => {
+                          setMobileOpen(false)
+                          handleUpgrade()
+                        }}
+                        className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Upgrade to Pro
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setMobileOpen(false)
+                        navigate('/pricing')
+                      }}
+                      className="w-full px-4 py-3 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Manage Plan
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMobileOpen(false)
+                        signOut()
+                      }}
+                      className="w-full px-4 py-3 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-2 text-red-400"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
                   <button
                     onClick={() => {
-                      navigate('/library')
-                      setIsOpen(false)
+                      setMobileOpen(false)
+                      setShowAuth(true)
                     }}
-                    className="block w-full text-left px-4 py-3 rounded-lg bg-white/10 font-semibold"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
                   >
-                    Library
+                    Get Started Free
                   </button>
-                  <button
-                    onClick={signOut}
-                    className="block w-full text-left px-4 py-3 rounded-lg bg-red-500/20 text-red-400 font-semibold"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    setShowAuthModal(true)
-                    setIsOpen(false)
-                  }}
-                  className="block w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-center"
-                >
-                  Get Started Free
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {/* Auth Modal */}
+      <AnimatePresence>
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      </AnimatePresence>
     </>
   )
 }
