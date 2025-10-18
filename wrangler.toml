@@ -1,0 +1,13 @@
+name = "seoscribe"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+FRONTEND_URL = "https://seoscribe.pro"
+FRONTEND_URLS = "https://seoscribe.pro,https://glistening-stroopwafel-16e9e6.netlify.app,http://localhost:5173,http://127.0.0.1:5173"
+DEFAULT_REGION = "us"
+MIN_YEAR = "2025"
+DEFAULT_FRESHNESS_DAYS = "365"
+LLM_PREFERRED = "anthropic"
+IMAGE_MODEL = "google/gemini-2.5-flash-image-preview"
+PUBLIC_API_URL = "https://seoscribe.frank-couchman.workers.dev"
