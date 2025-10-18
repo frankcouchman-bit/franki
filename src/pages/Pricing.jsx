@@ -1,37 +1,79 @@
-import { motion } from 'framer-motion'
-import { Check, Zap, Crown, Sparkles, ArrowRight } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Check, Zap, Crown, Sparkles } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { api } from '../lib/api'
+import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 import { toast } from 'react-hot-toast'
 
 export default function Pricing() {
+  const { user, plan } = useAuth()
   const navigate = useNavigate()
-  const { user, plan: currentPlan } = useAuth()
   const [loading, setLoading] = useState(false)
 
-  const handleSubscribe = async (planType) => {
+  const handleUpgrade = async () => {
     if (!user) {
-      toast.error('Please sign in first')
       navigate('/')
       return
     }
 
-    if (planType === 'free') {
-      toast.info('You\'re already on the free plan!')
+    if (plan === 'pro') {
+      handleManageBilling()
       return
     }
 
     setLoading(true)
     try {
-      const { url } = await api.createCheckoutSession(
-        window.location.origin + '/dashboard',
-        window.location.origin + '/pricing'
-      )
-      window.location.href = url
+      const response = await fetch('https://seoscribe.frank-couchman.workers.dev/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`
+        },
+        body: JSON.stringify({
+          successUrl: `${window.location.origin}/dashboard?upgrade=success`,
+          cancelUrl: `${window.location.origin}/pricing`
+        })
+      })
+
+      if (response.ok) {
+        const { url } = await response.json()
+        window.location.href = url
+      } else {
+        throw new Error('Failed to create checkout session')
+      }
     } catch (error) {
-      toast.error(error.message || 'Failed to start checkout')
+      console.error('Upgrade error:', error)
+      toast.error('Failed to start upgrade process')
+      setLoading(false)
+    }
+  }
+
+  const handleManageBilling = async () => {
+    if (!user) return
+
+    setLoading(true)
+    try {
+      const response = await fetch('https://seoscribe.frank-couchman.workers.dev/api/stripe/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`
+        },
+        body: JSON.stringify({
+          returnUrl: `${window.location.origin}/pricing`
+        })
+      })
+
+      if (response.ok) {
+        const { url } = await response.json()
+        window.location.href = url
+      } else {
+        throw new Error('Failed to access billing portal')
+      }
+    } catch (error) {
+      console.error('Portal error:', error)
+      toast.error('Failed to open billing portal')
       setLoading(false)
     }
   }
@@ -39,7 +81,6 @@ export default function Pricing() {
   const plans = [
     {
       name: 'Free',
-      icon: Sparkles,
       price: '$0',
       period: 'forever',
       description: 'Perfect for trying out SEOScribe',
@@ -48,123 +89,90 @@ export default function Pricing() {
         '1 SEO tool use per day',
         '2 article expansions',
         'All content templates',
-        'Basic support',
-        'Export to markdown'
+        'Basic analytics',
+        'Community support'
       ],
-      cta: 'Get Started Free',
-      popular: false,
-      gradient: 'from-blue-500 to-cyan-500'
+      cta: 'Current Plan',
+      current: plan === 'free',
+      icon: Zap,
+      color: 'from-blue-500 to-cyan-500'
     },
     {
       name: 'Pro',
-      icon: Zap,
       price: '$29',
       period: '/month',
-      description: 'For serious content creators',
+      description: 'For serious content creators and agencies',
       features: [
         '15 articles per day',
         '10 SEO tool uses per day',
         '6 article expansions',
-        'All content templates',
-        'Priority support',
-        'Export to all formats',
+        'All premium templates',
         'Advanced analytics',
-        'Team collaboration',
-        'API access'
+        'Priority support',
+        'API access',
+        'White-label options'
       ],
-      cta: 'Upgrade to Pro',
+      cta: plan === 'pro' ? 'Manage Billing' : 'Upgrade to Pro',
       popular: true,
-      gradient: 'from-purple-500 to-pink-500'
-    },
-    {
-      name: 'Enterprise',
+      current: plan === 'pro',
       icon: Crown,
-      price: 'Custom',
-      period: '',
-      description: 'For agencies and large teams',
-      features: [
-        'Unlimited articles',
-        'Unlimited SEO tools',
-        'Unlimited expansions',
-        'Custom templates',
-        'Dedicated support',
-        'White-label solution',
-        'Custom integrations',
-        'SLA guarantee',
-        'Onboarding & training'
-      ],
-      cta: 'Contact Sales',
-      popular: false,
-      gradient: 'from-yellow-500 to-orange-500'
+      color: 'from-purple-500 to-pink-500'
     }
   ]
 
   return (
-    <div className="min-h-screen pt-20 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+    <div className="min-h-screen pt-16">
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full border border-purple-500/30 mb-6">
-            <Zap className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-semibold text-purple-300">Simple, Transparent Pricing</span>
-          </div>
-
-          <h1 className="text-5xl md:text-6xl font-black mb-6">
-            Choose Your <span className="gradient-text">Perfect Plan</span>
+          <h1 className="text-5xl font-black mb-6">
+            Simple, Transparent <span className="gradient-text">Pricing</span>
           </h1>
-          <p className="text-xl text-white/70 max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-white/70 max-w-2xl mx-auto">
             Start free, upgrade when you're ready. No hidden fees, cancel anytime.
           </p>
-
-          {currentPlan && currentPlan !== 'free' && (
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-500/20 border border-green-500/30 rounded-full">
-              <Check className="w-5 h-5 text-green-400" />
-              <span className="font-semibold">You're on the {currentPlan} plan</span>
-            </div>
-          )}
         </motion.div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan, i) => (
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {plans.map((planItem, index) => (
             <motion.div
-              key={i}
+              key={planItem.name}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`relative glass-strong rounded-2xl p-8 border-2 transition-all ${
-                plan.popular 
-                  ? 'border-purple-500 shadow-2xl shadow-purple-500/20 scale-105' 
-                  : 'border-white/10 hover:border-white/20'
-              }`}
+              transition={{ delay: index * 0.1 }}
+              className={`glass-strong rounded-2xl p-8 border ${
+                planItem.popular ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : 'border-white/10'
+              } relative`}
             >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="px-4 py-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-sm font-bold">
+              {planItem.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
                     Most Popular
                   </div>
                 </div>
               )}
 
-              <div className={`w-14 h-14 bg-gradient-to-br ${plan.gradient} rounded-xl flex items-center justify-center mb-6`}>
-                <plan.icon className="w-7 h-7" />
-              </div>
-
-              <h3 className="text-2xl font-black mb-2">{plan.name}</h3>
-              <p className="text-white/60 mb-6">{plan.description}</p>
-
-              <div className="mb-6">
-                <span className="text-5xl font-black">{plan.price}</span>
-                <span className="text-white/60">{plan.period}</span>
+              <div className="text-center mb-8">
+                <div className={`w-16 h-16 bg-gradient-to-br ${planItem.color} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                  <planItem.icon className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">{planItem.name}</h3>
+                <p className="text-white/60 text-sm mb-4">{planItem.description}</p>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-5xl font-black gradient-text">{planItem.price}</span>
+                  <span className="text-white/60">{planItem.period}</span>
+                </div>
               </div>
 
               <ul className="space-y-3 mb-8">
-                {plan.features.map((feature, j) => (
-                  <li key={j} className="flex items-start gap-3">
+                {planItem.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                     <span className="text-white/80">{feature}</span>
                   </li>
@@ -172,76 +180,68 @@ export default function Pricing() {
               </ul>
 
               <motion.button
-                onClick={() => handleSubscribe(plan.name.toLowerCase())}
-                disabled={loading || (currentPlan === plan.name.toLowerCase())}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                  plan.popular
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg'
+                onClick={planItem.name === 'Pro' ? handleUpgrade : null}
+                disabled={loading || (planItem.current && planItem.name === 'Free')}
+                className={`w-full py-3 rounded-xl font-bold transition-all ${
+                  planItem.popular
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg hover:shadow-purple-500/50'
+                    : planItem.current
+                    ? 'bg-white/10 cursor-not-allowed'
                     : 'bg-white/10 hover:bg-white/20'
-                }`}
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
+                } disabled:opacity-50`}
+                whileHover={planItem.current && planItem.name === 'Free' ? {} : { scale: 1.02 }}
+                whileTap={planItem.current && planItem.name === 'Free' ? {} : { scale: 0.98 }}
               >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : currentPlan === plan.name.toLowerCase() ? (
-                  'Current Plan'
-                ) : (
-                  <>
-                    {plan.cta}
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
+                {loading ? 'Loading...' : planItem.cta}
               </motion.button>
             </motion.div>
           ))}
         </div>
 
-        {/* FAQ Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-20 max-w-3xl mx-auto"
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-16 text-center"
         >
-          <h2 className="text-3xl font-black text-center mb-12">
-            Frequently Asked <span className="gradient-text">Questions</span>
-          </h2>
-
-          <div className="space-y-4">
-            {[
-              {
-                q: 'Can I cancel anytime?',
-                a: 'Yes! You can cancel your subscription at any time. No questions asked.'
-              },
-              {
-                q: 'Do you offer refunds?',
-                a: 'We offer a 14-day money-back guarantee. If you\'re not satisfied, we\'ll refund you in full.'
-              },
-              {
-                q: 'What payment methods do you accept?',
-                a: 'We accept all major credit cards and PayPal through Stripe.'
-              },
-              {
-                q: 'Can I upgrade or downgrade my plan?',
-                a: 'Yes! You can change your plan at any time. Changes take effect immediately.'
-              }
-            ].map((faq, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="glass-card rounded-xl p-6 border border-white/10"
-              >
-                <h3 className="text-lg font-bold mb-2">{faq.q}</h3>
-                <p className="text-white/70">{faq.a}</p>
-              </motion.div>
-            ))}
+          <div className="glass-strong rounded-2xl p-8 border border-white/10 max-w-3xl mx-auto">
+            <h3 className="text-2xl font-bold mb-4">Need a custom plan?</h3>
+            <p className="text-white/70 mb-6">
+              For enterprises and agencies requiring custom limits, white-label solutions, or dedicated support,
+              contact us for a tailored plan.
+            </p>
+            
+              href="mailto:support@seoscribe.pro"
+              className="inline-block px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-colors"
+            >
+              Contact Sales
+            </a>
           </div>
         </motion.div>
       </div>
     </div>
   )
 }
+```
+
+---
+
+## **✅ DEPLOYMENT STEPS FOR YOU:**
+
+### **1. Worker is Already Deployed ✅**
+Your worker at `https://seoscribe.frank-couchman.workers.dev` is live with all secrets configured!
+
+### **2. Update Supabase Redirect URLs**
+
+Go to Supabase Dashboard → Authentication → URL Configuration and add:
+```
+https://seoscribe.pro/auth/callback
+https://glistening-stroopwafel-16e9e6.netlify.app/auth/callback
+https://seoscribe.frank-couchman.workers.dev/auth/callback
+```
+
+### **3. Update Stripe Webhook**
+
+Go to Stripe Dashboard → Webhooks and update the endpoint to:
+```
+https://seoscribe.frank-couchman.workers.dev/api/stripe/webhook
