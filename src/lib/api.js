@@ -25,7 +25,7 @@ async function apiCall(endpoint, options = {}) {
 }
 
 export const api = {
-  // Article Generation (using /api/draft from worker)
+  // Article Generation (uses /api/draft from worker)
   generateArticle: async (topic, websiteUrl = '', tone = 'professional', targetWordCount = 3000) => {
     return apiCall('/api/draft', {
       method: 'POST',
@@ -41,26 +41,27 @@ export const api = {
     })
   },
 
-  // Template Generation (using /api/templates/generate from worker)
-  generateFromTemplate: async (data) => {
+  // Template Generation (uses /api/templates/generate from worker)
+  generateFromTemplate: async (templateId, topic, websiteUrl = '') => {
     return apiCall('/api/templates/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        template_id: templateId,
+        topic,
+        website_url: websiteUrl
+      })
+    })
+  },
+
+  // Article Expansion (uses /api/expand from worker)
+  expandArticle: async (data) => {
+    return apiCall('/api/expand', {
       method: 'POST',
       body: JSON.stringify(data)
     })
   },
 
-  // Article Expansion (using /api/expand from worker)
-  expandArticle: async (data) => {
-    return apiCall('/api/expand', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...data,
-        expand_only: true
-      })
-    })
-  },
-
-  // Section Rewrite/Expand (using /api/tools/section from worker)
+  // Section Rewrite/Expand (uses /api/tools/section from worker)
   updateSection: async (instruction, section) => {
     return apiCall('/api/tools/section', {
       method: 'POST',
@@ -68,7 +69,7 @@ export const api = {
     })
   },
 
-  // Articles CRUD (using /api/articles from worker)
+  // Articles CRUD (uses /api/articles from worker)
   getArticles: async () => {
     return apiCall('/api/articles')
   },
@@ -97,7 +98,7 @@ export const api = {
     })
   },
 
-  // SEO Tools (using /api/tools/* from worker)
+  // SEO Tools (uses /api/tools/* from worker)
   analyzeHeadline: async (headline) => {
     return apiCall('/api/tools/headline-analyzer', {
       method: 'POST',
@@ -154,38 +155,8 @@ export const api = {
     })
   },
 
-  // Auth (using /auth/* from worker)
-  sendMagicLink: async (email, redirectUrl) => {
-    return apiCall('/auth/magic-link', {
-      method: 'POST',
-      body: JSON.stringify({ email, redirect: redirectUrl })
-    })
-  },
-
-  // Profile (using /api/profile from worker)
-  getProfile: async () => {
-    return apiCall('/api/profile')
-  },
-
-  updateProfile: async (data) => {
-    return apiCall('/api/profile', {
-      method: 'PATCH',
-      body: JSON.stringify(data)
-    })
-  },
-
-  // Stripe (using /api/stripe/* from worker)
-  createCheckoutSession: async (successUrl, cancelUrl) => {
-    return apiCall('/api/stripe/create-checkout', {
-      method: 'POST',
-      body: JSON.stringify({ successUrl, cancelUrl })
-    })
-  },
-
-  createPortalSession: async (returnUrl) => {
-    return apiCall('/api/stripe/portal', {
-      method: 'POST',
-      body: JSON.stringify({ returnUrl })
-    })
+  // Get templates list
+  getTemplates: async () => {
+    return apiCall('/api/templates')
   }
 }
