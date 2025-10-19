@@ -1,241 +1,240 @@
-import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { useArticles } from '../hooks/useArticles'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { FileText, Search, Trash2, ExternalLink, Calendar, Clock, TrendingUp, Filter } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
+import { useArticles } from '../hooks/useArticles'
+import { 
+  Search, 
+  FileText, 
+  Trash2, 
+  Calendar,
+  Clock,
+  BarChart3,
+  Filter,
+  Loader
+} from 'lucide-react'
+import Navbar from '../components/Navbar'
+import { toast } from 'react-hot-toast'
 
 export default function Library() {
-  const { articles, fetchArticles, deleteArticle, loading } = useArticles()
-  const { plan } = useAuth()
   const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filteredArticles, setFilteredArticles] = useState([])
-  const [sortBy, setSortBy] = useState('date') // date, title, words
+  const { articles, fetchArticles, deleteArticle, loading } = useArticles()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState('updated_at')
+  const [filterStatus, setFilterStatus] = useState('all')
 
   useEffect(() => {
     fetchArticles()
   }, [fetchArticles])
 
-  useEffect(() => {
-    let filtered = articles
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(article => 
-        article.title?.toLowerCase().includes(query) ||
-        article.meta?.description?.toLowerCase().includes(query)
-      )
-    }
-
-    // Sort
-    filtered = [...filtered].sort((a, b) => {
-      if (sortBy === 'date') {
+  const filteredArticles = articles
+    .filter(article => {
+      const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesFilter = filterStatus === 'all' || article.status === filterStatus
+      return matchesSearch && matchesFilter
+    })
+    .sort((a, b) => {
+      if (sortBy === 'updated_at') {
+        return new Date(b.updated_at) - new Date(a.updated_at)
+      } else if (sortBy === 'created_at') {
         return new Date(b.created_at) - new Date(a.created_at)
-      } else if (sortBy === 'title') {
-        return (a.title || '').localeCompare(b.title || '')
-      } else if (sortBy === 'words') {
+      } else if (sortBy === 'word_count') {
         return (b.word_count || 0) - (a.word_count || 0)
       }
       return 0
     })
 
-    setFilteredArticles(filtered)
-  }, [searchQuery, articles, sortBy])
-
-  const handleDelete = async (id, e) => {
-    e.stopPropagation()
-    if (window.confirm('Are you sure you want to delete this article?')) {
-      await deleteArticle(id)
+  const handleDelete = async (id, title) => {
+    if (window.confirm(`Delete "${title}"?`)) {
+      try {
+        await deleteArticle(id)
+        toast.success('Article deleted')
+      } catch (error) {
+        toast.error('Failed to delete article')
+      }
     }
   }
 
-  const totalWords = articles.reduce((sum, article) => sum + (article.word_count || 0), 0)
-
   return (
-    <div className="min-h-screen pt-20 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-16">
+      <Navbar />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl md:text-5xl font-black mb-2">
-            Article <span className="gradient-text">Library</span>
-          </h1>
-          <p className="text-white/60 text-lg">Manage and view all your generated articles</p>
+          <h1 className="text-4xl font-black mb-2">Article Library</h1>
+          <p className="text-white/60">Manage all your SEO-optimized articles</p>
         </motion.div>
 
-        {/* Stats Bar */}
+        {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid md:grid-cols-3 gap-6 mb-8"
+          className="glass-strong rounded-2xl p-6 border border-white/10 mb-8"
         >
-          <div className="glass-strong rounded-xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <FileText className="w-8 h-8 text-purple-400" />
-              <div className="text-3xl font-black gradient-text">{articles.length}</div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search articles..."
+                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50"
+              />
             </div>
-            <div className="text-white/60">Total Articles</div>
-          </div>
-          
-          <div className="glass-strong rounded-xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-8 h-8 text-green-400" />
-              <div className="text-3xl font-black text-green-400">{totalWords.toLocaleString()}</div>
-            </div>
-            <div className="text-white/60">Total Words Written</div>
-          </div>
-          
-          <div className="glass-strong rounded-xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="w-8 h-8 text-blue-400" />
-              <div className="text-3xl font-black text-blue-400">
-                {Math.ceil(totalWords / 200)}
-              </div>
-            </div>
-            <div className="text-white/60">Minutes of Reading</div>
-          </div>
-        </motion.div>
 
-        {/* Search and Filter Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8 flex flex-col md:flex-row gap-4"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search articles by title or description..."
-              className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50"
-            />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-white/60" />
+            {/* Sort By */}
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 appearance-none cursor-pointer"
+              >
+                <option value="updated_at">Recently Updated</option>
+                <option value="created_at">Recently Created</option>
+                <option value="word_count">Word Count</option>
+              </select>
+            </div>
+
+            {/* Filter Status */}
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-purple-400 cursor-pointer"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 appearance-none cursor-pointer"
             >
-              <option value="date">Sort by Date</option>
-              <option value="title">Sort by Title</option>
-              <option value="words">Sort by Word Count</option>
+              <option value="all">All Articles</option>
+              <option value="draft">Drafts</option>
+              <option value="published">Published</option>
             </select>
           </div>
         </motion.div>
 
         {/* Articles Grid */}
         {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="glass-strong rounded-xl p-6 animate-pulse border border-white/10">
-                <div className="h-6 bg-white/10 rounded w-3/4 mb-4" />
-                <div className="h-4 bg-white/5 rounded w-full mb-2" />
-                <div className="h-4 bg-white/5 rounded w-2/3" />
-              </div>
-            ))}
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <Loader className="w-12 h-12 animate-spin text-purple-500 mx-auto mb-4" />
+              <p className="text-white/60">Loading articles...</p>
+            </div>
           </div>
         ) : filteredArticles.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-16"
+            className="text-center py-20"
           >
-            <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FileText className="w-16 h-16 text-white/20" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">
-              {searchQuery ? 'No articles found' : 'No articles yet'}
-            </h2>
-            <p className="text-white/60 mb-8 max-w-md mx-auto">
-              {searchQuery 
-                ? 'Try a different search term or clear your search'
-                : 'Generate your first SEO-optimized article to get started'
+            <FileText className="w-20 h-20 text-white/20 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold mb-2">
+              {searchTerm ? 'No articles found' : 'No articles yet'}
+            </h3>
+            <p className="text-white/60 mb-6">
+              {searchTerm 
+                ? 'Try adjusting your search or filters'
+                : 'Generate your first article to get started'
               }
             </p>
-            {!searchQuery && (
+            {!searchTerm && (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold shadow-lg inline-flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold"
               >
-                <FileText className="w-5 h-5" />
-                Generate Your First Article
+                Generate Article
               </button>
             )}
           </motion.div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredArticles.map((article, i) => (
-              <motion.div
-                key={article.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => navigate(`/article/${article.id}`)}
-                className="glass-strong rounded-xl p-6 cursor-pointer hover:bg-white/10 transition-all group border border-white/10 hover:border-purple-500/50"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <div className="flex gap-2">
+            <AnimatePresence>
+              {filteredArticles.map((article, index) => (
+                <motion.div
+                  key={article.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="glass-strong rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
+                  onClick={() => navigate(`/article/${article.id}`)}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <FileText className="w-6 h-6" />
+                    </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/article/${article.id}`)
+                        handleDelete(article.id, article.title)
                       }}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                      title="View article"
+                      className="p-2 hover:bg-red-500/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(article.id, e)}
-                      className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                      title="Delete article"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-400" />
+                      <Trash2 className="w-5 h-5 text-red-400" />
                     </button>
                   </div>
-                </div>
 
-                <h3 className="text-xl font-bold mb-2 line-clamp-2 group-hover:text-purple-400 transition-colors">
-                  {article.title || 'Untitled Article'}
-                </h3>
+                  <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-purple-400 transition-colors">
+                    {article.title || 'Untitled'}
+                  </h3>
 
-                <p className="text-sm text-white/60 line-clamp-2 mb-4">
-                  {article.meta?.description || 'No description available'}
-                </p>
+                  <div className="space-y-2 text-sm text-white/60">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        {article.updated_at 
+                          ? new Date(article.updated_at).toLocaleDateString()
+                          : 'Recently'
+                        }
+                      </span>
+                    </div>
 
-                <div className="flex items-center gap-4 text-xs text-white/50 border-t border-white/10 pt-4">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {article.created_at 
-                        ? new Date(article.created_at).toLocaleDateString()
-                        : 'Recently'
-                      }
+                    {article.word_count && (
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" />
+                        <span>{article.word_count} words</span>
+                      </div>
+                    )}
+
+                    {article.reading_time_minutes && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>{article.reading_time_minutes} min read</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {article.seo_score && (
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-white/60">SEO Score</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                              style={{ width: `${article.seo_score}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold">{article.seo_score}/100</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      article.status === 'published'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {article.status || 'draft'}
                     </span>
                   </div>
-                  {article.word_count && (
-                    <>
-                      <span>•</span>
-                      <span className="font-semibold text-purple-400">{article.word_count} words</span>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
