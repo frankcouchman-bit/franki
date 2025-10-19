@@ -3,22 +3,23 @@ import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import HeadlineAnalyzer from '../components/tools/HeadlineAnalyzer'
 import ReadabilityChecker from '../components/tools/ReadabilityChecker'
-import SERPPreview from '../components/tools/SERPPreview' // <-- fixed: explicit .js
+// Be explicit with the extension so resolution is unambiguous on Linux/Netlify:
+import SERPPreview from '../components/tools/SERPPreview.jsx'
 import PlagiarismChecker from '../components/tools/PlagiarismChecker'
 import CompetitorAnalysis from '../components/tools/CompetitorAnalysis'
 import KeywordCluster from '../components/tools/KeywordCluster'
 import ContentBrief from '../components/tools/ContentBrief'
 import MetaGenerator from '../components/tools/MetaGenerator'
 import ToolWrapper from '../components/tools/ToolWrapper'
-import { 
-  Sparkles, 
-  BookOpen, 
-  Eye, 
-  Shield, 
-  Target, 
-  Tag, 
-  FileText, 
-  AlignLeft 
+import {
+  Sparkles,
+  BookOpen,
+  Eye,
+  Shield,
+  Target,
+  Tag,
+  FileText,
+  AlignLeft,
 } from 'lucide-react'
 
 export default function SEOTools() {
@@ -35,7 +36,7 @@ export default function SEOTools() {
     { id: 'meta', name: 'Meta Generator', icon: AlignLeft, component: MetaGenerator },
   ]
 
-  const ActiveComponent = tools.find(t => t.id === activeTool)?.component
+  const ActiveComponent = tools.find((t) => t.id === activeTool)?.component
 
   return (
     <div className="min-h-screen pt-16">
@@ -71,12 +72,16 @@ export default function SEOTools() {
                     : 'bg-white/5 border-2 border-transparent hover:bg-white/10'
                 }`}
               >
-                <tool.icon className={`w-6 h-6 mx-auto mb-2 ${
-                  activeTool === tool.id ? 'text-purple-400' : 'text-white/60'
-                }`} />
-                <div className={`text-xs ${
-                  activeTool === tool.id ? 'text-white' : 'text-white/60'
-                }`}>
+                <tool.icon
+                  className={`w-6 h-6 mx-auto mb-2 ${
+                    activeTool === tool.id ? 'text-purple-400' : 'text-white/60'
+                  }`}
+                />
+                <div
+                  className={`text-xs ${
+                    activeTool === tool.id ? 'text-white' : 'text-white/60'
+                  }`}
+                >
                   {tool.name}
                 </div>
               </button>
@@ -85,9 +90,7 @@ export default function SEOTools() {
         </motion.div>
 
         {/* Active Tool */}
-        <ToolWrapper key={activeTool}>
-          {ActiveComponent && <ActiveComponent />}
-        </ToolWrapper>
+        <ToolWrapper key={activeTool}>{ActiveComponent && <ActiveComponent />}</ToolWrapper>
       </div>
     </div>
   )
