@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Sparkles, TrendingUp, AlertCircle } from 'lucide-react'
+import { Sparkles, TrendingUp, AlertCircle, CheckCircle, Info } from 'lucide-react'
 import { api } from '../../lib/api'
 import { toast } from 'react-hot-toast'
 
@@ -21,33 +21,56 @@ export default function HeadlineAnalyzer() {
       setAnalysis(result)
       toast.success('Headline analyzed!')
     } catch (error) {
-      toast.error(error.message || 'Analysis failed')
+      if (error.message.includes('Tool limit reached')) {
+        toast.error('Daily tool limit reached. Upgrade to Pro for more!')
+      } else if (error.message.includes('Sign in required')) {
+        toast.error('Sign in to use SEO tools')
+      } else {
+        toast.error(error.message || 'Analysis failed')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-400'
-    if (score >= 60) return 'text-yellow-400'
+    if (score >= 80) return 'from-green-500 to-emerald-500'
+    if (score >= 60) return 'from-yellow-500 to-orange-500'
+    return 'from-red-500 to-rose-500'
+  }
+
+  const getGradeColor = (grade) => {
+    if (grade.startsWith('A')) return 'text-green-400'
+    if (grade.startsWith('B')) return 'text-yellow-400'
     return 'text-red-400'
   }
 
   return (
     <div className="glass-strong rounded-2xl p-8 border border-white/10">
-      <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+          <Sparkles className="w-6 h-6" />
+        </div>
         <div>
-          <label className="block text-sm font-semibold mb-2">Enter Your Headline</label>
+          <h3 className="text-2xl font-bold">Headline Analyzer</h3>
+          <p className="text-white/60 text-sm">Optimize your headlines for maximum CTR</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold mb-2">Your Headline</label>
           <input
             type="text"
             value={headline}
             onChange={(e) => setHeadline(e.target.value)}
-            placeholder="e.g., 10 Best AI Writing Tools to Boost Your Productivity"
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50"
             onKeyPress={(e) => e.key === 'Enter' && analyzeHeadline()}
+            placeholder="10 Ways to Boost Your SEO Rankings in 2025"
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50"
+            maxLength={100}
           />
           <p className="text-xs text-white/50 mt-2">
-            Character count: {headline.length} / 60 (optimal)
+            {headline.length}/100 characters
           </p>
         </div>
 
@@ -78,74 +101,137 @@ export default function HeadlineAnalyzer() {
           animate={{ opacity: 1, y: 0 }}
           className="mt-8 space-y-6"
         >
-          {/* Overall Score */}
-          <div className="text-center p-8 bg-white/5 rounded-xl border border-white/10">
-            <div className={`text-6xl font-black mb-2 ${getScoreColor(analysis.score || 75)}`}>
-              {analysis.score || 75}
-            </div>
-            <div className="text-white/60">Overall Score</div>
-            <div className="mt-4">
-              <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                <motion.div
-                  className={`h-full bg-gradient-to-r ${
-                    (analysis.score || 75) >= 80 
-                      ? 'from-green-400 to-emerald-400'
-                      : (analysis.score || 75) >= 60
-                      ? 'from-yellow-400 to-orange-400'
-                      : 'from-red-400 to-pink-400'
-                  }`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${analysis.score || 75}%` }}
-                  transition={{ duration: 1 }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Metrics */}
+          {/* Score Card */}
           <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-2xl font-bold text-blue-400 mb-1">
-                {analysis.word_count || headline.split(' ').length}
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+              <div className="text-sm text-white/60 mb-2">Overall Score</div>
+              <div className="relative w-24 h-24 mx-auto">
+                <svg className="transform -rotate-90" width="96" height="96">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="url(#gradient)"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={251}
+                    strokeDashoffset={251 - (251 * analysis.score) / 100}
+                  />
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#a855f7" />
+                      <stop offset="100%" stopColor="#ec4899" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-3xl font-black gradient-text">
+                    {analysis.score}
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-white/60">Words</div>
-              <div className="text-xs text-white/50 mt-1">Optimal: 6-10</div>
             </div>
 
-            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-2xl font-bold text-green-400 mb-1">
-                {analysis.emotional_score || 'Medium'}
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+              <div className="text-sm text-white/60 mb-2">Grade</div>
+              <div className={`text-5xl font-black ${getGradeColor(analysis.grade)}`}>
+                {analysis.grade}
               </div>
-              <div className="text-sm text-white/60">Emotional Impact</div>
-              <div className="text-xs text-white/50 mt-1">Engagement level</div>
+              <div className="text-sm text-white/60 mt-2">
+                {analysis.estimated_ctr || 'Medium'} CTR
+              </div>
             </div>
 
-            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-2xl font-bold text-purple-400 mb-1">
-                {analysis.power_words || 2}
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/60">Length</span>
+                <span className="font-bold">{analysis.length} chars</span>
               </div>
-              <div className="text-sm text-white/60">Power Words</div>
-              <div className="text-xs text-white/50 mt-1">Clickability boost</div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/60">Words</span>
+                <span className="font-bold">{analysis.word_count}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/60">Numbers</span>
+                <span className="font-bold">{analysis.has_numbers ? 'Yes ✓' : 'No'}</span>
+              </div>
             </div>
           </div>
 
-          {/* Suggestions */}
-          <div className="space-y-3">
-            <h4 className="font-bold flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-400" />
-              Improvement Suggestions
-            </h4>
-            {(analysis.suggestions || [
-              'Add numbers for better engagement (e.g., "10 Best...")',
-              'Include power words like "Ultimate", "Essential", "Proven"',
-              'Keep it under 60 characters for SEO'
-            ]).map((suggestion, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
-                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <span className="text-white/80">{suggestion}</span>
+          {/* Power Words */}
+          {analysis.power_words && analysis.power_words.length > 0 && (
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+              <div className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Power Words Detected
               </div>
-            ))}
-          </div>
+              <div className="flex flex-wrap gap-2">
+                {analysis.power_words.map((word, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-semibold"
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Emotional Words */}
+          {analysis.emotional_words && analysis.emotional_words.length > 0 && (
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+              <div className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Emotional Triggers
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {analysis.emotional_words.map((word, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-semibold"
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Feedback */}
+          {analysis.feedback && analysis.feedback.length > 0 && (
+            <div className="space-y-3">
+              <div className="text-lg font-bold mb-4">Recommendations</div>
+              {analysis.feedback.map((item, i) => (
+                <div
+                  key={i}
+                  className={`p-4 rounded-xl border ${
+                    item.type === 'success'
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : item.type === 'warning'
+                      ? 'bg-yellow-500/10 border-yellow-500/30'
+                      : 'bg-blue-500/10 border-blue-500/30'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {item.type === 'success' && <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />}
+                    {item.type === 'warning' && <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />}
+                    {item.type === 'info' && <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />}
+                    <span className="text-white/90">{item.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       )}
     </div>
