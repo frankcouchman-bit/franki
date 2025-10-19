@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { toast } from 'react-hot-toast'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 const getLocalUsage = () => {
   const today = new Date().toISOString().split('T')[0]
   const stored = localStorage.getItem('usage_data')
@@ -14,7 +16,10 @@ const getLocalUsage = () => {
     } catch {}
   }
   
-  return { today: { generations: 0, tools: 0 }, thisMonth: { total: 0 } }
+  return { 
+    today: { generations: 0, tools: 0 }, 
+    month: { generations: 0 } 
+  }
 }
 
 const saveLocalUsage = (usage) => {
@@ -30,10 +35,9 @@ export const useAuth = create((set, get) => ({
 
   checkAuth: async () => {
     const token = localStorage.getItem('supabase_token')
-    const refreshToken = localStorage.getItem('supabase_refresh_token')
     
     if (!token) {
-      set({ loading: false, user: null })
+      set({ loading: false, user: null, plan: 'free' })
       return
     }
 
@@ -45,19 +49,26 @@ export const useAuth = create((set, get) => ({
         email: payload.email
       }
 
-      // Fetch profile from worker
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Fetch profile from worker /api/profile
+      const response = await fetch(`${API_URL}/api/profile`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       })
 
       if (response.ok) {
         const profile = await response.json()
+        const usage = profile.usage || getLocalUsage()
+        
         set({
           user,
           loading: false,
           plan: profile.plan || 'free',
-          usage: profile.usage || getLocalUsage()
+          usage
         })
+        
+        saveLocalUsage(usage)
       } else {
         throw new Error('Profile fetch failed')
       }
@@ -65,25 +76,28 @@ export const useAuth = create((set, get) => ({
       console.error('Auth check failed:', error)
       localStorage.removeItem('supabase_token')
       localStorage.removeItem('supabase_refresh_token')
-      set({ loading: false, user: null })
+      set({ loading: false, user: null, plan: 'free' })
     }
   },
 
   signIn: async (email) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/magic-link`, {
+      const response = await fetch(`${API_URL}/auth/magic-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email, 
-          redirect: window.location.origin + '/auth/callback' 
+          email,
+          redirect: window.location.origin + '/auth/callback'
         })
       })
 
-      if (!response.ok) throw new Error('Failed to send magic link')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send magic link')
+      }
       
       const data = await response.json()
-      toast.success('Magic link sent! Check your email.')
+      toast.success(data.message || 'Magic link sent! Check your email.')
       return true
     } catch (error) {
       toast.error(error.message || 'Sign in failed')
@@ -92,7 +106,8 @@ export const useAuth = create((set, get) => ({
   },
 
   signInWithGoogle: () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google?redirect=${encodeURIComponent(window.location.origin + '/auth/callback')}`
+    const redirect = encodeURIComponent(window.location.origin + '/auth/callback')
+    window.location.href = `${API_URL}/auth/google?redirect=${redirect}`
   },
 
   handleCallback: async (accessToken, refreshToken) => {
@@ -107,6 +122,7 @@ export const useAuth = create((set, get) => ({
     }
 
     await get().checkAuth()
+    toast.success('Signed in successfully!')
     return true
   },
 
@@ -124,85 +140,24 @@ export const useAuth = create((set, get) => ({
     if (!token) return
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`${API_URL}/api/profile`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       })
 
       if (response.ok) {
         const profile = await response.json()
         const newUsage = profile.usage || getLocalUsage()
-        set({ usage: newUsage })
+        set({ 
+          usage: newUsage,
+          plan: profile.plan || 'free'
+        })
         saveLocalUsage(newUsage)
       }
     } catch (error) {
       console.error('Usage refresh failed:', error)
     }
-  },
-
-  initializeUsage: () => {
-    const usage = getLocalUsage()
-    set({ usage })
-  },
-
-  getLocalUsage,
-
-  canGenerate: () => {
-    const { user, plan, usage } = get()
-    const todayGenerations = usage?.today?.generations || 0
-    
-    if (!user) {
-      return !localStorage.getItem('demo_used') || get().getDemoTimeRemaining() < 0
-    }
-    
-    const maxGenerations = plan === 'pro' || plan === 'enterprise' ? 15 : 1
-    return todayGenerations < maxGenerations
-  },
-
-  canUseTool: () => {
-    const { user, plan, usage } = get()
-    const todayTools = usage?.today?.tools || 0
-    
-    if (!user) {
-      return todayTools < 1
-    }
-    
-    const maxTools = plan === 'pro' || plan === 'enterprise' ? 10 : 1
-    return todayTools < maxTools
-  },
-
-  incrementGeneration: () => {
-    const { usage } = get()
-    const newUsage = {
-      ...usage,
-      today: {
-        ...usage.today,
-        generations: (usage.today?.generations || 0) + 1
-      }
-    }
-    set({ usage: newUsage })
-    saveLocalUsage(newUsage)
-  },
-
-  incrementToolUsage: () => {
-    const { usage } = get()
-    const newUsage = {
-      ...usage,
-      today: {
-        ...usage.today,
-        tools: (usage.today?.tools || 0) + 1
-      }
-    }
-    set({ usage: newUsage })
-    saveLocalUsage(newUsage)
-  },
-
-  getDemoTimeRemaining: () => {
-    const demoDate = localStorage.getItem('demo_date')
-    if (!demoDate) return 30
-    
-    const demo = new Date(demoDate)
-    const now = new Date()
-    const diffDays = Math.ceil((now - demo) / (1000 * 60 * 60 * 24))
-    return Math.max(0, 30 - diffDays)
   }
 }))
