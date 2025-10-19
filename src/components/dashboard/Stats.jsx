@@ -1,77 +1,86 @@
 import { motion } from 'framer-motion'
-import { FileText, TrendingUp } from 'lucide-react'
+import { FileText, Zap, TrendingUp, Crown } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Stats() {
-  const { usage, plan, user } = useAuth()
-  const [mounted, setMounted] = useState(false)
+  const { plan, usage } = useAuth()
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const quotas = {
+    free: { generations: 1, tools: 1 },
+    pro: { generations: 15, tools: 10 }
+  }
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const { getLocalUsage } = useAuth.getState()
-      const newUsage = getLocalUsage()
-      useAuth.setState({ usage: newUsage })
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const today = usage?.today?.generations || 0
-  const thisMonth = usage?.thisMonth?.total || 0
-  const maxToday = (plan === 'pro' || plan === 'enterprise') ? 15 : 1
+  const currentQuota = quotas[plan] || quotas.free
+  const generationsUsed = usage?.today?.generations || 0
+  const toolsUsed = usage?.today?.tools || 0
 
   const stats = [
     {
       label: 'Articles Today',
-      value: user ? `${today}/${maxToday}` : `${today}/1`,
+      value: `${generationsUsed}/${currentQuota.generations}`,
       icon: FileText,
       color: 'from-blue-500 to-cyan-500',
-      progress: (today / maxToday) * 100
+      percentage: (generationsUsed / currentQuota.generations) * 100
+    },
+    {
+      label: 'Tool Uses Today',
+      value: `${toolsUsed}/${currentQuota.tools}`,
+      icon: Zap,
+      color: 'from-purple-500 to-pink-500',
+      percentage: (toolsUsed / currentQuota.tools) * 100
     },
     {
       label: 'This Month',
-      value: thisMonth,
+      value: usage?.month?.generations || 0,
       icon: TrendingUp,
-      color: 'from-purple-500 to-pink-500',
-      progress: null
+      color: 'from-green-500 to-emerald-500'
+    },
+    {
+      label: 'Current Plan',
+      value: plan === 'pro' ? 'Pro' : 'Free',
+      icon: Crown,
+      color: plan === 'pro' ? 'from-yellow-500 to-orange-500' : 'from-gray-500 to-slate-500',
+      action: plan === 'free' ? () => navigate('/pricing') : null
     }
   ]
 
-  if (!mounted) return null
-
   return (
-    <div className="grid md:grid-cols-2 gap-6 mb-8">
-      {stats.map((stat, i) => (
+    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {stats.map((stat, index) => (
         <motion.div
-          key={i}
-          className="glass-strong rounded-2xl p-6 border border-white/10"
+          key={index}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
+          transition={{ delay: index * 0.1 }}
+          onClick={stat.action}
+          className={`glass-strong rounded-2xl p-6 border border-white/10 ${
+            stat.action ? 'cursor-pointer hover:border-white/20' : ''
+          } transition-all`}
         >
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-white/60 text-sm mb-1">{stat.label}</div>
-              <div className="text-3xl font-black">{stat.value}</div>
+            <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
+              <stat.icon className="w-6 h-6" />
             </div>
-            <div className={`w-14 h-14 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
-              <stat.icon className="w-7 h-7" />
-            </div>
+            {stat.action && (
+              <span className="text-xs text-purple-400 font-semibold">Upgrade</span>
+            )}
           </div>
-          
-          {stat.progress !== null && (
-            <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-              <motion.div
-                key={`progress-${today}`}
-                className={`h-full bg-gradient-to-r ${stat.color}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(stat.progress, 100)}%` }}
-                transition={{ duration: 0.5 }}
-              />
+
+          <div className="text-3xl font-black mb-1">{stat.value}</div>
+          <div className="text-sm text-white/60">{stat.label}</div>
+
+          {stat.percentage !== undefined && (
+            <div className="mt-4">
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(stat.percentage, 100)}%` }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
+                  className={`h-full bg-gradient-to-r ${stat.color}`}
+                />
+              </div>
             </div>
           )}
         </motion.div>
