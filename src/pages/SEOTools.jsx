@@ -3,22 +3,25 @@ import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import HeadlineAnalyzer from '../components/tools/HeadlineAnalyzer'
 import ReadabilityChecker from '../components/tools/ReadabilityChecker'
-import SERPPreview from '../components/tools/SERPPreview'
+// 👉 IF your component file is SERPPreview.jsx use this:
+import SERPPreview from '../components/tools/SERPPreview.jsx'
+// 👉 IF your component file is SERPPreview.js use this instead:
+// import SERPPreview from '../components/tools/SERPPreview.js'
 import PlagiarismChecker from '../components/tools/PlagiarismChecker'
 import CompetitorAnalysis from '../components/tools/CompetitorAnalysis'
 import KeywordCluster from '../components/tools/KeywordCluster'
 import ContentBrief from '../components/tools/ContentBrief'
 import MetaGenerator from '../components/tools/MetaGenerator'
 import ToolWrapper from '../components/tools/ToolWrapper'
-import { 
-  Sparkles, 
-  BookOpen, 
-  Eye, 
-  Shield, 
-  Target, 
-  Tag, 
-  FileText, 
-  AlignLeft 
+import {
+  Sparkles,
+  BookOpen,
+  Eye,
+  Shield,
+  Target,
+  Tag,
+  FileText,
+  AlignLeft
 } from 'lucide-react'
 
 export default function SEOTools() {
@@ -71,12 +74,16 @@ export default function SEOTools() {
                     : 'bg-white/5 border-2 border-transparent hover:bg-white/10'
                 }`}
               >
-                <tool.icon className={`w-6 h-6 mx-auto mb-2 ${
-                  activeTool === tool.id ? 'text-purple-400' : 'text-white/60'
-                }`} />
-                <div className={`text-xs ${
-                  activeTool === tool.id ? 'text-white' : 'text-white/60'
-                }`}>
+                <tool.icon
+                  className={`w-6 h-6 mx-auto mb-2 ${
+                    activeTool === tool.id ? 'text-purple-400' : 'text-white/60'
+                  }`}
+                />
+                <div
+                  className={`text-xs ${
+                    activeTool === tool.id ? 'text-white' : 'text-white/60'
+                  }`}
+                >
                   {tool.name}
                 </div>
               </button>
