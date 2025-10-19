@@ -3,8 +3,7 @@ import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import HeadlineAnalyzer from '../components/tools/HeadlineAnalyzer'
 import ReadabilityChecker from '../components/tools/ReadabilityChecker'
-// Be explicit with the extension so resolution is unambiguous on Linux/Netlify:
-import SERPPreview from '../components/tools/SERPPreview.jsx'
+import SERPPreview from '../components/tools/SERPPreview.jsx' // <- explicit extension + exact case
 import PlagiarismChecker from '../components/tools/PlagiarismChecker'
 import CompetitorAnalysis from '../components/tools/CompetitorAnalysis'
 import KeywordCluster from '../components/tools/KeywordCluster'
