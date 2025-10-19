@@ -1,26 +1,41 @@
-const API_BASE = import.meta.env.VITE_API_URL || ''
+// src/lib/api.js
+const BASE_RAW = import.meta.env.VITE_API_URL || ''
+const API_BASE = BASE_RAW.replace(/\/+$/, '') // remove trailing slashes
 
 const headers = (token = null) => ({
   'Content-Type': 'application/json',
   ...(token && { 'Authorization': `Bearer ${token}` })
 })
 
+function joinUrl(base, endpoint) {
+  const ep = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  return base ? `${base}${ep}` : ep
+}
+
 async function apiCall(endpoint, options = {}) {
-  const token = localStorage.getItem('supabase_token')
-  
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_token') : null
+
+  const response = await fetch(joinUrl(API_BASE, endpoint), {
     ...options,
     headers: {
       ...headers(token),
-      ...options.headers
-    }
+      ...(options.headers || {})
+    },
+    credentials: options.credentials ?? 'include'
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || error.message || 'Request failed')
+    let msg = `Request failed (HTTP ${response.status})`
+    try {
+      const err = await response.json()
+      msg = err?.error || err?.message || msg
+    } catch {
+      // ignore JSON parse error; keep default msg
+    }
+    throw new Error(msg)
   }
 
+  // assume JSON responses from Worker
   return response.json()
 }
 
@@ -70,93 +85,59 @@ export const api = {
   },
 
   // Articles CRUD (uses /api/articles from worker)
-  getArticles: async () => {
-    return apiCall('/api/articles')
-  },
-
-  getArticle: async (id) => {
-    return apiCall(`/api/articles/${id}`)
-  },
-
-  saveArticle: async (article) => {
-    return apiCall('/api/articles', {
-      method: 'POST',
-      body: JSON.stringify(article)
-    })
-  },
-
-  updateArticle: async (id, data) => {
-    return apiCall(`/api/articles/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data)
-    })
-  },
-
-  deleteArticle: async (id) => {
-    return apiCall(`/api/articles/${id}`, {
-      method: 'DELETE'
-    })
-  },
+  getArticles: async () => apiCall('/api/articles'),
+  getArticle: async (id) => apiCall(`/api/articles/${id}`),
+  saveArticle: async (article) => apiCall('/api/articles', {
+    method: 'POST',
+    body: JSON.stringify(article)
+  }),
+  updateArticle: async (id, data) => apiCall(`/api/articles/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  }),
+  deleteArticle: async (id) => apiCall(`/api/articles/${id}`, { method: 'DELETE' }),
 
   // SEO Tools (uses /api/tools/* from worker)
-  analyzeHeadline: async (headline) => {
-    return apiCall('/api/tools/headline-analyzer', {
-      method: 'POST',
-      body: JSON.stringify({ headline })
-    })
-  },
+  analyzeHeadline: async (headline) => apiCall('/api/tools/headline-analyzer', {
+    method: 'POST',
+    body: JSON.stringify({ headline })
+  }),
 
-  checkReadability: async (text) => {
-    return apiCall('/api/tools/readability', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    })
-  },
+  checkReadability: async (text) => apiCall('/api/tools/readability', {
+    method: 'POST',
+    body: JSON.stringify({ text })
+  }),
 
-  generateSERPPreview: async (title, description, url) => {
-    return apiCall('/api/tools/serp-preview', {
-      method: 'POST',
-      body: JSON.stringify({ title, description, url })
-    })
-  },
+  generateSERPPreview: async (title, description, url) => apiCall('/api/tools/serp-preview', {
+    method: 'POST',
+    body: JSON.stringify({ title, description, url })
+  }),
 
-  checkPlagiarism: async (text) => {
-    return apiCall('/api/tools/plagiarism', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    })
-  },
+  checkPlagiarism: async (text) => apiCall('/api/tools/plagiarism', {
+    method: 'POST',
+    body: JSON.stringify({ text })
+  }),
 
-  analyzeCompetitors: async (keyword) => {
-    return apiCall('/api/tools/competitor-analysis', {
-      method: 'POST',
-      body: JSON.stringify({ keyword })
-    })
-  },
+  analyzeCompetitors: async (keyword) => apiCall('/api/tools/competitor-analysis', {
+    method: 'POST',
+    body: JSON.stringify({ keyword })
+  }),
 
-  clusterKeywords: async (topic, text = '') => {
-    return apiCall('/api/tools/keywords', {
-      method: 'POST',
-      body: JSON.stringify({ topic, text })
-    })
-  },
+  clusterKeywords: async (topic, text = '') => apiCall('/api/tools/keywords', {
+    method: 'POST',
+    body: JSON.stringify({ topic, text })
+  }),
 
-  generateBrief: async (keyword) => {
-    return apiCall('/api/tools/content-brief', {
-      method: 'POST',
-      body: JSON.stringify({ keyword })
-    })
-  },
+  generateBrief: async (keyword) => apiCall('/api/tools/content-brief', {
+    method: 'POST',
+    body: JSON.stringify({ keyword })
+  }),
 
-  generateMeta: async (content) => {
-    return apiCall('/api/tools/meta-description', {
-      method: 'POST',
-      body: JSON.stringify({ content })
-    })
-  },
+  generateMeta: async (content) => apiCall('/api/tools/meta-description', {
+    method: 'POST',
+    body: JSON.stringify({ content })
+  }),
 
   // Get templates list
-  getTemplates: async () => {
-    return apiCall('/api/templates')
-  }
+  getTemplates: async () => apiCall('/api/templates'),
 }
