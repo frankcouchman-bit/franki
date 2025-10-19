@@ -19,7 +19,11 @@ export default function SERPPreview() {
 
     setLoading(true)
     try {
-      const result = await api.generateSERPPreview(title, description, url || 'https://example.com')
+      const result = await api.generateSERPPreview(
+        title,
+        description,
+        url || 'https://example.com'
+      )
       setPreview(result)
       toast.success('Preview generated!')
     } catch (error) {
@@ -42,9 +46,7 @@ export default function SERPPreview() {
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50"
             maxLength={60}
           />
-          <p className="text-xs text-white/50 mt-2">
-            {title.length}/60 characters
-          </p>
+          <p className="text-xs text-white/50 mt-2">{title.length}/60 characters</p>
         </div>
 
         <div>
@@ -57,9 +59,7 @@ export default function SERPPreview() {
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 resize-none"
             maxLength={160}
           />
-          <p className="text-xs text-white/50 mt-2">
-            {description.length}/160 characters
-          </p>
+          <p className="text-xs text-white/50 mt-2">{description.length}/160 characters</p>
         </div>
 
         <div>
