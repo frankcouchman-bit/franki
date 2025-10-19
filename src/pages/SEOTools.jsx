@@ -3,10 +3,7 @@ import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import HeadlineAnalyzer from '../components/tools/HeadlineAnalyzer'
 import ReadabilityChecker from '../components/tools/ReadabilityChecker'
-// 👉 IF your component file is SERPPreview.jsx use this:
-import SERPPreview from '../components/tools/SERPPreview.jsx'
-// 👉 IF your component file is SERPPreview.js use this instead:
-// import SERPPreview from '../components/tools/SERPPreview.js'
+import SERPPreview from '../components/tools/SERPPreview.js' // ← exact file + extension
 import PlagiarismChecker from '../components/tools/PlagiarismChecker'
 import CompetitorAnalysis from '../components/tools/CompetitorAnalysis'
 import KeywordCluster from '../components/tools/KeywordCluster'
